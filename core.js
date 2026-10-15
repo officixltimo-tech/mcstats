@@ -146,7 +146,7 @@ function summarize(s) {
 // Liest alles ein und gibt { snapshot, players } zurück. players: name(klein) -> Detaildaten
 async function collect(cfg) {
   const props = readProperties(cfg.serverDir);
-  const statsDir = path.join(cfg.serverDir, props['level-name'] || 'New World (4)', 'players', 'stats');
+  const statsDir = path.join(cfg.serverDir, props['level-name'] || 'New World (4)','players','stats');
   let files = [];
   try { files = (await fsp.readdir(statsDir)).filter((f) => f.endsWith('.json')); }
   catch { console.warn(`[stats] Ordner nicht gefunden: ${statsDir}`); }
