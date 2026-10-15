@@ -48,6 +48,7 @@ jobs:
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
+          STATS_PATH: ${{ vars.STATS_PATH || '/New World (4)/players/stats' }}
           MC_HOST: ${{ secrets.MC_HOST }}
           MC_PORT: ${{ secrets.MC_PORT }}
           HIDDEN_PLAYERS: ${{ vars.HIDDEN_PLAYERS }}
