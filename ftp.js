@@ -92,6 +92,7 @@ class FtpClient {
   async _transfer(cmd, onData) {
     const data = await this._dataSocket();
     const done = new Promise((resolve, reject) => { data.on('data', onData); data.on('end', resolve); data.on('close', resolve); data.on('error', reject); });
+    done.catch(() => {}); // verhindert Absturz, falls der Server die Datenverbindung bei einem Fehler zurücksetzt
     let start;
     try { start = await this.send(cmd, [100, 299]); } catch (e) { data.destroy(); throw e; }
     if (start.code >= 200) { await done; return; } // manche Server antworten gleich mit 226
