@@ -1,0 +1,68 @@
+name: Stats aktualisieren
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            mirror
+            names-cache.json
+          key: mcstats-${{ github.run_id }}
+          restore-keys: mcstats-
+
+      - name: SFTP-Bibliothek installieren (nur bei SFTP nötig)
+        env:
+          FTP_PROTOCOL: ${{ secrets.FTP_PROTOCOL }}
+        run: if [ "$FTP_PROTOCOL" = "sftp" ]; then npm install ssh2-sftp-client; fi
+
+      - name: Stats holen und Seite bauen
+        env:
+          SERVER_NAME: ${{ vars.SERVER_NAME }}
+          FTP_PROTOCOL: ${{ secrets.FTP_PROTOCOL }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_PORT: ${{ secrets.FTP_PORT }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_PATH: ${{ secrets.FTP_PATH }}
+          MC_HOST: ${{ secrets.MC_HOST }}
+          MC_PORT: ${{ secrets.MC_PORT }}
+          HIDDEN_PLAYERS: ${{ vars.HIDDEN_PLAYERS }}
+        run: node build.js
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
