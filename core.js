@@ -28,6 +28,7 @@ function loadConfig() {
       user: env.FTP_USER || r.user,
       password: env.FTP_PASSWORD || r.password,
       path: env.FTP_PATH || r.path || '/',
+      statsPath: env.STATS_PATH || r.statsPath || '',
       secure: (env.FTP_SECURE || String(r.secure || 'false')) === 'true',
     } : null,
   };
@@ -146,7 +147,8 @@ function summarize(s) {
 // Liest alles ein und gibt { snapshot, players } zurück. players: name(klein) -> Detaildaten
 async function collect(cfg) {
   const props = readProperties(cfg.serverDir);
-  const statsDir = path.join(cfg.serverDir, props['level-name'] || 'New World (4)','players','stats');
+  const worldDir = path.join(cfg.serverDir, props['level-name'] || 'world');
+  const statsDir = [path.join(worldDir, 'stats'), path.join(worldDir, 'players', 'stats')].find((d) => fs.existsSync(d)) || path.join(worldDir, 'stats');
   let files = [];
   try { files = (await fsp.readdir(statsDir)).filter((f) => f.endsWith('.json')); }
   catch { console.warn(`[stats] Ordner nicht gefunden: ${statsDir}`); }

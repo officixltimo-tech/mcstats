@@ -76,45 +76,56 @@ async function sync(cfg) {
     if (!byName(root, 'server.properties')) warn(`Keine server.properties in ${base} gefunden. Ist FTP_PATH richtig? Es muss der Ordner sein, in dem server.properties liegt.`);
 
     const remote = (p) => posix.join(base, p);
-    const fetchFile = async (rel, info) => {
+    // Lädt remotePath nach mirror/<localRel>, aber nur, wenn sich die Datei geändert hat
+    const fetchFile = async (localRel, remotePath, info) => {
       const stamp = info ? `${info.size}|${info.mtime}` : null;
-      if (stamp && manifest[rel] === stamp && fs.existsSync(path.join(dest, rel))) return;
-      fs.mkdirSync(path.dirname(path.join(dest, rel)), { recursive: true });
-      await conn.get(remote(rel), path.join(dest, rel));
-      manifest[rel] = stamp; loaded++;
+      if (stamp && manifest[localRel] === stamp && fs.existsSync(path.join(dest, localRel))) return;
+      fs.mkdirSync(path.dirname(path.join(dest, localRel)), { recursive: true });
+      await conn.get(remotePath, path.join(dest, localRel));
+      manifest[localRel] = stamp; loaded++;
     };
 
     for (const f of ['server.properties', 'usercache.json']) {
-      if (byName(root, f)) await fetchFile(f, byName(root, f));
+      if (byName(root, f)) await fetchFile(f, remote(f), byName(root, f));
     }
     const logs = await listing(remote('logs'));
-    if (byName(logs, 'latest.log')) await fetchFile('logs/latest.log', null); // ändert sich ständig – immer neu laden
+    if (byName(logs, 'latest.log')) await fetchFile('logs/latest.log', remote('logs/latest.log'), null); // ändert sich ständig – immer neu laden
 
-    // 2) Welt-Ordner bestimmen
+    // 2) Stats-Ordner finden. Reihenfolge: eingestellter Pfad (STATS_PATH), dann <welt>/stats,
+    //    dann <welt>/players/stats (neuerer Ordneraufbau), dann jeder andere Ordner mit stats darin.
     let level = 'world';
     try { level = (fs.readFileSync(path.join(dest, 'server.properties'), 'utf8').match(/^level-name=(.*)$/m) || [])[1]?.trim() || 'world'; } catch {}
-    let stats = (await listing(remote(`${level}/stats`))).filter((f) => f.isFile && f.name.endsWith('.json'));
-    if (!stats.length) {
-      // Fallback: irgendein Ordner mit stats/ darin
-      for (const d of root.filter((f) => f.isDir && f.name !== level).slice(0, 20)) {
-        const s = (await listing(remote(`${d.name}/stats`))).filter((f) => f.isFile && f.name.endsWith('.json'));
-        if (s.length) { console.log(`[sync] Stats in ${d.name}/stats gefunden (statt ${level}/stats).`); level = d.name; stats = s; break; }
-      }
+    const candidates = [];
+    if (r.statsPath) candidates.push(r.statsPath.startsWith('/') ? r.statsPath : remote(r.statsPath));
+    candidates.push(remote(`${level}/stats`), remote(`${level}/players/stats`));
+    for (const d of root.filter((f) => f.isDir && f.name !== level).slice(0, 20))
+      candidates.push(remote(`${d.name}/stats`), remote(`${d.name}/players/stats`));
+
+    let stats = [], statsDir = null;
+    for (const c of [...new Set(candidates)]) {
+      const s = (await listing(c)).filter((f) => f.isFile && f.name.endsWith('.json'));
+      if (s.length) { stats = s; statsDir = c; break; }
+      if (c === candidates[0] && r.statsPath) warn(`Im eingestellten Stats-Ordner ${c} liegen keine .json-Dateien – suche woanders weiter.`);
     }
-    // Lokale Kopie soll denselben Weltnamen nutzen wie gefunden
+    if (statsDir) console.log(`[sync] Stats-Ordner: ${statsDir}`);
+
+    // Lokal liegen die Stats immer unter mirror/world/stats – egal wie der Ordner auf dem Server heißt
     {
       const pf = path.join(dest, 'server.properties');
       const p = fs.existsSync(pf) ? fs.readFileSync(pf, 'utf8') : '';
-      const fixed = /^level-name=.*$/m.test(p) ? p.replace(/^level-name=.*$/m, `level-name=${level}`) : p + `\nlevel-name=${level}\n`;
+      const fixed = /^level-name=.*$/m.test(p) ? p.replace(/^level-name=.*$/m, 'level-name=world') : p + '\nlevel-name=world\n';
       if (fixed !== p) { fs.writeFileSync(pf, fixed); delete manifest['server.properties']; }
     }
 
     if (!stats.length) {
-      const w = await listing(remote(level));
-      warn(`Keine Stats-Dateien in ${remote(level + '/stats')}. Inhalt von ${remote(level)}: ${show(w)}. ` +
+      warn(`Keine Stats-Dateien gefunden. Gesucht in: ${[...new Set(candidates)].slice(0, 6).join(', ')}. ` +
         'Minecraft legt die Dateien erst an, wenn jemand gespielt hat und der Server gespeichert hat (/save-all).');
     }
-    for (const f of stats) await fetchFile(`${level}/stats/${f.name}`, f);
+    // Alte lokale Stats entfernen, die es auf dem Server nicht mehr gibt
+    const localStats = path.join(dest, 'world', 'stats');
+    const keep = new Set(stats.map((f) => f.name));
+    if (fs.existsSync(localStats)) for (const f of fs.readdirSync(localStats)) if (!keep.has(f)) { fs.rmSync(path.join(localStats, f)); delete manifest['world/stats/' + f]; }
+    for (const f of stats) await fetchFile(`world/stats/${f.name}`, posix.join(statsDir, f.name), f);
     statCount = stats.length;
   } finally {
     await conn.close().catch(() => {});
