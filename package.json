@@ -1,0 +1,15 @@
+{
+  "name": "mcstats",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Minecraft Stats-Website (lokal, per FTP von G-Portal oder als GitHub Pages)",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node build.js",
+    "sync": "node sync.js"
+  },
+  "engines": { "node": ">=18" },
+  "optionalDependencies": {
+    "ssh2-sftp-client": "^11.0.0"
+  }
+}

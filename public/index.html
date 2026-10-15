@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Stats</title>
+<meta name="theme-color" content="#1e1426">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1e1426; --bg2:#2a1c36; --card:#32223f; --card2:#3b2a4a; --line:#4a3659;
+  --text:#f3ecf7; --muted:#b8a6c6; --dim:#8a7699;
+  --accent:#7ee081; --accent-ink:#163a17; --gold:#ffd166; --silver:#cfd8e3; --bronze:#e0a06b;
+  --red:#ff6b7a; --blue:#6cc6ff;
+  --radius:14px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f6f1fa; --bg2:#ece3f3; --card:#ffffff; --card2:#f4eef9; --line:#dccfe7;
+    --text:#24172e; --muted:#5f4c6e; --dim:#8a7699; --accent:#2f9e44; --accent-ink:#fff;
+    --gold:#c99700; --silver:#7d8a99; --bronze:#b56a2d; color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f6f1fa; --bg2:#ece3f3; --card:#ffffff; --card2:#f4eef9; --line:#dccfe7;
+  --text:#24172e; --muted:#5f4c6e; --dim:#8a7699; --accent:#2f9e44; --accent-ink:#fff;
+  --gold:#c99700; --silver:#7d8a99; --bronze:#b56a2d; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.5 "Rubik",system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(1200px 500px at 80% -10%, color-mix(in srgb,var(--accent) 12%, transparent), transparent 70%),
+                   radial-gradient(900px 400px at -10% 10%, color-mix(in srgb,#b06cff 14%, transparent), transparent 70%);
+  background-attachment:fixed;min-height:100vh}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--bg) 80%,transparent);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:16px;height:60px}
+.brand{font-family:"Pixelify Sans",monospace;font-weight:700;font-size:22px;display:flex;align-items:center;gap:10px}
+.brand .cube{width:26px;height:26px;background:linear-gradient(135deg,#7ee081 0 50%,#5aa65c 50%);box-shadow:inset 0 -8px 0 #6b4a2b;border-radius:4px;image-rendering:pixelated}
+.search{margin-left:auto;position:relative}
+.search input{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 14px;width:220px;font:inherit;font-size:14px}
+.search input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.sugg{position:absolute;right:0;top:44px;background:var(--card);border:1px solid var(--line);border-radius:12px;width:240px;max-height:300px;overflow:auto;display:none;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.sugg a{display:flex;align-items:center;gap:10px;padding:8px 12px}
+.sugg a:hover,.sugg a.sel{background:var(--card2)}
+.theme-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;width:36px;height:36px;cursor:pointer;font-size:16px}
+
+.hero{padding:56px 0 24px}
+.kicker{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--accent);animation:pulse 2s infinite}
+.dot.off{background:var(--red);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 70%,transparent)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+h1{font-family:"Pixelify Sans",monospace;font-size:clamp(44px,8vw,84px);line-height:1;margin:10px 0 12px;letter-spacing:.01em}
+.lead{color:var(--muted);font-size:clamp(16px,2.2vw,19px);max-width:620px;margin:0}
+h2{font-family:"Pixelify Sans",monospace;font-size:28px;margin:48px 0 6px}
+.h2sub{color:var(--muted);margin:0 0 18px;font-size:14px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px}
+.kpi .l{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.kpi .v{font-family:"Pixelify Sans",monospace;font-size:40px;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .s{color:var(--dim);font-size:13px}
+
+.split{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.panel h3{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px}
+.online{display:flex;flex-wrap:wrap;gap:10px}
+.chip{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:6px 10px 6px 6px;font-weight:500}
+.chip:hover{border-color:var(--accent)}
+.empty{color:var(--dim);font-size:14px}
+.events{list-style:none;margin:0;padding:0}
+.events li{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.events li:first-child{border-top:0}
+.events time{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px;min-width:44px}
+.tag{font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;text-transform:uppercase;letter-spacing:.05em}
+.t-join{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent)}
+.t-leave{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
+.t-advancement,.t-challenge{background:color-mix(in srgb,var(--gold) 20%,transparent);color:var(--gold)}
+
+.head{width:28px;height:28px;border-radius:6px;image-rendering:pixelated;background:var(--card2);flex:none}
+.boards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.board{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px 10px;display:flex;flex-direction:column}
+.board h3{font-family:"Pixelify Sans",monospace;font-size:22px;margin:0;display:flex;align-items:center;gap:10px}
+.px{width:14px;height:14px;flex:none;background:var(--c);box-shadow:inset -3px -3px 0 rgba(0,0,0,.28),inset 3px 3px 0 rgba(255,255,255,.22);display:inline-block}
+.badge .px{width:10px;height:10px;vertical-align:-1px;margin-right:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+.board .bsub{color:var(--muted);font-size:13px;margin:2px 0 12px}
+.board ol{list-style:none;margin:0;padding:0}
+.board li a{display:grid;grid-template-columns:22px 28px 1fr auto;align-items:center;gap:10px;padding:6px 6px;border-radius:8px}
+.board li a:hover{background:var(--card2)}
+.rank{font-weight:700;color:var(--dim);text-align:center;font-variant-numeric:tabular-nums}
+.r1 .rank{color:var(--gold)} .r2 .rank{color:var(--silver)} .r3 .rank{color:var(--bronze)}
+.r1 a{background:color-mix(in srgb,var(--gold) 10%,transparent)}
+.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.val{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+.bar{grid-column:3/5;height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:-4px}
+.bar i{display:block;height:100%;background:var(--accent);opacity:.7}
+
+/* Spielerseite */
+.back{display:inline-flex;gap:6px;align-items:center;color:var(--muted);margin-top:28px;font-size:14px}
+.back:hover{color:var(--text)}
+.phero{display:flex;gap:24px;align-items:center;padding:24px 0 8px}
+.phero img{width:120px;height:120px;border-radius:16px;image-rendering:pixelated;background:var(--card)}
+.phero h1{margin:4px 0}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.badge{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--muted)}
+.badge b{color:var(--gold)}
+.pk{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+.groups{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.grp table{width:100%;border-collapse:collapse;font-size:14px}
+.grp td{padding:6px 4px;border-top:1px solid var(--line)}
+.grp tr:first-child td{border-top:0}
+.grp td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.grp .more{background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;font-size:13px;padding:8px 0 0}
+
+footer{color:var(--dim);font-size:13px;padding:60px 0 40px;text-align:center}
+.status{color:var(--dim);font-size:13px;margin-top:14px}
+.skel{color:transparent;background:linear-gradient(90deg,var(--card2),var(--line),var(--card2));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:6px}
+@keyframes sk{to{background-position:-200% 0}}
+
+@media (max-width:960px){.boards{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.groups{grid-template-columns:1fr}}
+@media (max-width:620px){.boards{grid-template-columns:1fr}.pk{grid-template-columns:repeat(2,1fr)}.search input{width:150px}.phero{flex-direction:column;align-items:flex-start}.kpi .v{font-size:32px}.brand span{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#/"><div class="cube"></div><span id="brandName">Server</span></a>
+  <div class="search">
+    <input id="q" type="search" placeholder="Spieler suchen…" autocomplete="off" aria-label="Spieler suchen">
+    <div class="sugg" id="sugg"></div>
+  </div>
+  <button class="theme-btn" id="themeBtn" title="Hell/Dunkel">◐</button>
+</div></header>
+
+<main id="app" class="wrap"></main>
+<footer class="wrap">Kein offizielles Minecraft-Produkt. Nicht von Mojang oder Microsoft genehmigt und nicht mit Mojang oder Microsoft verbunden.</footer>
+
+<script>
+(() => {
+const $ = (s, el = document) => el.querySelector(s);
+const app = $('#app');
+const nf = new Intl.NumberFormat('de-DE');
+const nf1 = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const DEMO = window.DEMO_DATA || null;
+// Pixel-Ersatzkopf (für Demo und falls mc-heads.net nicht lädt)
+function pixelHead(seed) {
+  let h = 2166136261; for (const c of String(seed)) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  const rnd = () => (h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0) / 4294967296;
+  const skin = ['#c68e6a', '#e0b08c', '#8d5a3b', '#f1c9a5'][Math.floor(rnd() * 4)];
+  const hair = ['#3b2414', '#d9a441', '#1d1d1d', '#a33b2b', '#6c4a2f', '#e8e3d9'][Math.floor(rnd() * 6)];
+  const eye = ['#3a6fd8', '#2f8f4e', '#5b3a21', '#7a49c9'][Math.floor(rnd() * 4)];
+  let r = '';
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    let c = skin;
+    if (y < 2 || (y < 3 && (x === 0 || x === 7))) c = hair;
+    if (y === 4 && (x === 1 || x === 5)) c = '#fff';
+    if (y === 4 && (x === 2 || x === 6)) c = eye;
+    if (y === 6 && x >= 3 && x <= 4) c = '#6b3b2a';
+    r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`;
+  }
+  return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges">${r}</svg>`);
+}
+const head = (uuid, size = 28) => DEMO ? pixelHead(uuid) : `https://mc-heads.net/avatar/${uuid}/${size * 2}`;
+document.addEventListener('error', (e) => { const i = e.target; if (i.tagName === 'IMG' && !i.dataset.fb) { i.dataset.fb = 1; i.src = pixelHead(i.dataset.u || i.src); } }, true);
+
+// ---- Theme ----
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+$('#themeBtn').onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch {}
+};
+
+// ---- Daten ----
+async function getStats() {
+  if (DEMO) return DEMO.overview;
+  const r = await fetch('data/stats.json?t=' + Date.now());
+  if (!r.ok) return null;
+  const d = await r.json();
+  // Statische Version (z. B. GitHub Pages): Online-Spieler live im Browser nachladen
+  if (d.static && d.liveAddress) {
+    try {
+      const l = await (await fetch('https://api.mcsrvstat.us/3/' + encodeURIComponent(d.liveAddress))).json();
+      d.server = l.online
+        ? { reachable: true, online: l.players?.online || 0, max: l.players?.max || 0, players: (l.players?.list || []).map((p) => p.name) }
+        : { reachable: false, online: 0, max: 0, players: [] };
+    } catch { /* dann gilt der Stand vom letzten Build */ }
+  }
+  return d;
+}
+async function getPlayer(name) {
+  if (DEMO) return DEMO.players[name.toLowerCase()] || null;
+  if (!/^\w{1,36}$/.test(name)) return null;
+  const r = await fetch('data/spieler/' + name.toLowerCase() + '.json?t=' + Date.now()); return r.ok ? r.json() : null;
+}
+
+const fmt = (v, unit) => {
+  if (unit === 'hours') return nf1.format(v) + ' h';
+  if (unit === 'km') return nf1.format(v) + ' km';
+  if (unit === 'hearts') return nf.format(Math.round(v)) + ' ♥';
+  return nf.format(Math.round(v));
+};
+const COL = { playtime: '#6cc6ff', diamonds: '#4ee6d8', deaths: '#9a8aa8', mined: '#a07a52', mobs: '#ff6b7a', distance: '#7ee081', totems: '#ffd166', damage: '#e05c3c', food: '#e0a06b' };
+const px = (k) => `<span class="px" style="--c:${COL[k] || '#b8a6c6'}"></span>`;
+const EVT = { join: ['join', 'Join', 'ist beigetreten'], leave: ['leave', 'Left', 'hat das Spiel verlassen'], advancement: ['advancement', 'Erfolg', 'hat den Fortschritt'], challenge: ['challenge', 'Challenge', 'hat die Herausforderung'] };
+
+let state = null, timer = null;
+
+// ---- Übersicht ----
+function renderOverview(d) {
+  document.title = `Stats · ${d.serverName}`;
+  $('#brandName').textContent = d.serverName;
+  const s = d.server;
+  app.innerHTML = `
+  <section class="hero">
+    <div class="kicker"><span class="dot ${s.reachable ? '' : 'off'}"></span>${s.reachable ? 'Live vom Server' : 'Server gerade offline'}</div>
+    <h1>Stats</h1>
+    <p class="lead">Wer ist drauf, wer zockt am meisten, wer stirbt am häufigsten und wer sitzt auf den Diamanten.</p>
+  </section>
+
+  <h2>Auf einen Blick</h2>
+  <div class="kpis">
+    <div class="kpi"><div class="l">Online</div><div class="v">${s.reachable ? nf.format(s.online) : '–'}</div><div class="s">${s.reachable ? `von ${nf.format(s.max)} Plätzen` : 'nicht erreichbar'}</div></div>
+    <div class="kpi"><div class="l">Spieler</div><div class="v">${nf.format(d.totals.players)}</div><div class="s">waren schon mal da</div></div>
+    <div class="kpi"><div class="l">Stunden gespielt</div><div class="v">${nf.format(Math.round(d.totals.hours))}</div><div class="s">zusammen</div></div>
+    <div class="kpi"><div class="l">Tode</div><div class="v">${nf.format(d.totals.deaths)}</div><div class="s">und es werden mehr</div></div>
+  </div>
+
+  <div class="split" style="margin-top:14px">
+    <div class="panel"><h3>Gerade online</h3>
+      <div class="online">${s.players.length ? s.players.map((n) => {
+        const p = d.players.find((x) => x.name.toLowerCase() === n.toLowerCase());
+        return `<a class="chip" href="#/spieler/${encodeURIComponent(n)}"><img class="head" loading="lazy" src="${head(p ? p.uuid : n)}" alt="">${esc(n)}</a>`;
+      }).join('') : `<span class="empty">${s.reachable ? 'Gerade ist niemand online.' : 'Keine Verbindung zum Server.'}</span>`}</div>
+      ${s.online > s.players.length && s.players.length ? `<p class="empty" style="margin:10px 0 0">+ ${s.online - s.players.length} weitere</p>` : ''}
+    </div>
+    <div class="panel"><h3>Letzte Events</h3>
+      ${d.events.length ? `<ol class="events">${d.events.map((e) => {
+        const [cls, label, txt] = EVT[e.type];
+        return `<li><time>${esc(e.time.slice(0, 5))}</time><span class="tag t-${cls}">${label}</span><span><a href="#/spieler/${encodeURIComponent(e.player)}"><b>${esc(e.player)}</b></a> ${txt}${e.detail ? ` <b>${esc(e.detail)}</b> erreicht` : ''}</span></li>`;
+      }).join('')}</ol>` : '<span class="empty">Noch nichts passiert heute.</span>'}
+    </div>
+  </div>
+
+  <h2>Bestenlisten</h2>
+  <p class="h2sub">Top 10 · Name anklicken für die ganze Spielerseite</p>
+  <div class="boards">${d.boards.map((b) => {
+    const max = b.entries[0]?.value || 1;
+    return `<article class="board">
+      <h3>${px(b.key)}${esc(b.title)}</h3>
+      <div class="bsub">${esc(b.sub)}</div>
+      ${b.entries.length ? `<ol>${b.entries.map((e, i) => `
+        <li class="r${i + 1}"><a href="#/spieler/${encodeURIComponent(e.name)}">
+          <span class="rank">${i + 1}</span><img class="head" loading="lazy" src="${head(e.uuid)}" alt="">
+          <span class="nm">${esc(e.name)}</span><span class="val">${fmt(e.value, b.unit)}</span>
+          <span class="bar"><i style="width:${Math.max(3, (e.value / max) * 100)}%"></i></span>
+        </a></li>`).join('')}</ol>` : '<span class="empty">Noch keine Daten.</span>'}
+    </article>`;
+  }).join('')}</div>
+  <p class="status">Zuletzt aktualisiert: ${new Date(d.updated).toLocaleTimeString('de-DE')}${DEMO ? ' · Demo-Daten' : ''}</p>`;
+}
+
+// ---- Spielerseite ----
+const CUSTOM_DE = {
+  play_time: ['Spielzeit', 't'], play_one_minute: ['Spielzeit', 't'], total_world_time: ['Zeit in der Welt', 't'],
+  time_since_death: ['Seit dem letzten Tod', 't'], time_since_rest: ['Seit dem letzten Schlaf', 't'], sneak_time: ['Geschlichen', 't'],
+  deaths: ['Tode'], mob_kills: ['Mobs getötet'], player_kills: ['Spieler getötet'], jump: ['Sprünge'],
+  damage_dealt: ['Schaden ausgeteilt', 'h'], damage_taken: ['Schaden erlitten', 'h'], damage_blocked_by_shield: ['Mit Schild geblockt', 'h'],
+  damage_absorbed: ['Schaden absorbiert', 'h'], damage_resisted: ['Schaden widerstanden', 'h'],
+  walk_one_cm: ['Gelaufen', 'cm'], sprint_one_cm: ['Gesprintet', 'cm'], swim_one_cm: ['Geschwommen', 'cm'], fly_one_cm: ['Geflogen', 'cm'],
+  aviate_one_cm: ['Mit Elytra geflogen', 'cm'], boat_one_cm: ['Mit dem Boot', 'cm'], horse_one_cm: ['Geritten', 'cm'], minecart_one_cm: ['Mit der Lore', 'cm'],
+  fall_one_cm: ['Gefallen', 'cm'], climb_one_cm: ['Geklettert', 'cm'], crouch_one_cm: ['Geschlichen (Strecke)', 'cm'],
+  walk_on_water_one_cm: ['Auf Wasser gelaufen', 'cm'], walk_under_water_one_cm: ['Unter Wasser gelaufen', 'cm'], strider_one_cm: ['Auf Schreiter geritten', 'cm'],
+  pig_one_cm: ['Auf Schwein geritten', 'cm'], happy_ghast_one_cm: ['Auf Glücklichem Ghast geflogen', 'cm'],
+  sleep_in_bed: ['Im Bett geschlafen'], fish_caught: ['Fische gefangen'], animals_bred: ['Tiere gezüchtet'], traded_with_villager: ['Mit Dorfbewohnern gehandelt'],
+  talked_to_villager: ['Mit Dorfbewohnern gesprochen'], enchant_item: ['Gegenstände verzaubert'], drop: ['Gegenstände fallen gelassen'],
+  leave_game: ['Spiel verlassen'], open_chest: ['Truhen geöffnet'], open_enderchest: ['Endertruhen geöffnet'], open_shulker_box: ['Shulkerkisten geöffnet'],
+  raid_win: ['Überfälle gewonnen'], raid_trigger: ['Überfälle ausgelöst'], bell_ring: ['Glocken geläutet'], eat_cake_slice: ['Kuchenstücke gegessen'],
+  totem_of_undying: ['Totems verbraucht'], target_hit: ['Zielblöcke getroffen'], use_cauldron: ['Kessel benutzt'], play_noteblock: ['Notenblöcke gespielt'],
+};
+const nice = (k) => { const s = k.replace(/^minecraft:/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
+function fmtCustom(k, v) {
+  const u = (CUSTOM_DE[k] || [])[1];
+  if (u === 't') { const h = v / 72000; return h >= 1 ? nf1.format(h) + ' h' : nf.format(Math.round(v / 1200)) + ' min'; }
+  if (u === 'cm') { const m = v / 100; return m >= 1000 ? nf1.format(m / 1000) + ' km' : nf.format(Math.round(m)) + ' m'; }
+  if (u === 'h') return nf.format(Math.round(v / 20)) + ' ♥';
+  return nf.format(v);
+}
+const GROUPS = [
+  ['minecraft:mined', 'Abgebaut'], ['minecraft:killed', 'Getötet'], ['minecraft:killed_by', 'Getötet von'],
+  ['minecraft:crafted', 'Hergestellt'], ['minecraft:used', 'Benutzt'], ['minecraft:placed', 'Platziert'],
+  ['minecraft:picked_up', 'Aufgehoben'], ['minecraft:broken', 'Kaputt gemacht'], ['minecraft:dropped', 'Fallen gelassen'],
+];
+
+async function renderPlayer(name) {
+  app.innerHTML = `<a class="back" href="#/">← Zurück zur Übersicht</a><div class="phero"><div class="head skel" style="width:120px;height:120px"></div><div><h1 class="skel">${esc(name)}</h1></div></div>`;
+  const p = await getPlayer(name);
+  if (!p) { app.innerHTML = `<a class="back" href="#/">← Zurück zur Übersicht</a><h1 style="margin-top:30px">Nicht gefunden</h1><p class="lead">Über „${esc(name)}“ gibt’s noch keine Stats.</p>`; return; }
+  document.title = `${p.name} · Stats`;
+
+  const ranks = (state?.boards || []).map((b) => ({ b, i: b.entries.findIndex((e) => e.uuid === p.uuid) })).filter((x) => x.i >= 0);
+  const online = state?.server?.players?.some((n) => n.toLowerCase() === p.name.toLowerCase());
+  const s = p.summary;
+  const custom = Object.entries(p.stats['minecraft:custom'] || {}).map(([k, v]) => [k.replace(/^minecraft:/, ''), v]).filter(([, v]) => v > 0)
+    .sort((a, z) => (CUSTOM_DE[z[0]] ? 1 : 0) - (CUSTOM_DE[a[0]] ? 1 : 0) || z[1] - a[1]);
+
+  const table = (rows, id, label) => `<div class="panel grp"><h3>${label}</h3><table>${rows.map((r, i) =>
+    `<tr ${i >= 10 ? `data-x="${id}" hidden` : ''}><td>${esc(r[0])}</td><td>${r[1]}</td></tr>`).join('')}</table>
+    ${rows.length > 10 ? `<button class="more" data-t="${id}">Alle ${rows.length} anzeigen</button>` : ''}</div>`;
+
+  app.innerHTML = `
+  <a class="back" href="#/">← Zurück zur Übersicht</a>
+  <section class="phero">
+    <img src="${DEMO ? pixelHead(p.uuid) : `https://mc-heads.net/body/${p.uuid}/240`}" data-u="${p.uuid}" alt="">
+    <div>
+      <div class="kicker"><span class="dot ${online ? '' : 'off'}"></span>${online ? 'Gerade online' : 'Offline'}</div>
+      <h1>${esc(p.name)}</h1>
+      <div class="badges">${ranks.length ? ranks.map(({ b, i }) => `<span class="badge">${px(b.key)}<b>#${i + 1}</b> ${esc(b.title)}</span>`).join('') : '<span class="badge">Noch in keiner Top 10</span>'}</div>
+    </div>
+  </section>
+  <div class="pk">
+    <div class="kpi"><div class="l">Spielzeit</div><div class="v">${fmt(s.playtime, 'hours')}</div></div>
+    <div class="kpi"><div class="l">Tode</div><div class="v">${fmt(s.deaths)}</div></div>
+    <div class="kpi"><div class="l">Diamanterze</div><div class="v">${fmt(s.diamonds)}</div></div>
+    <div class="kpi"><div class="l">Blöcke abgebaut</div><div class="v">${fmt(s.mined)}</div></div>
+    <div class="kpi"><div class="l">Mobs erledigt</div><div class="v">${fmt(s.mobs)}</div></div>
+    <div class="kpi"><div class="l">Strecke</div><div class="v">${fmt(s.distance, 'km')}</div></div>
+  </div>
+  <h2>Alles im Detail</h2>
+  <div class="groups">
+    ${table(custom.map(([k, v]) => [(CUSTOM_DE[k] || [nice(k)])[0], fmtCustom(k, v)]), 'custom', 'Allgemein')}
+    ${GROUPS.map(([key, label], gi) => {
+      const rows = Object.entries(p.stats[key] || {}).filter(([, v]) => v > 0).sort((a, z) => z[1] - a[1]).map(([k, v]) => [nice(k), nf.format(v)]);
+      return rows.length ? table(rows, 'g' + gi, label) : '';
+    }).join('')}
+  </div>`;
+  app.querySelectorAll('.more').forEach((b) => b.onclick = () => {
+    app.querySelectorAll(`[data-x="${b.dataset.t}"]`).forEach((r) => r.hidden = false); b.remove();
+  });
+}
+
+// ---- Suche ----
+const q = $('#q'), sugg = $('#sugg');
+let sel = -1;
+function showSugg() {
+  const t = q.value.trim().toLowerCase();
+  const list = t && state ? state.players.filter((p) => p.name.toLowerCase().includes(t)).slice(0, 8) : [];
+  sel = -1;
+  sugg.innerHTML = list.map((p) => `<a href="#/spieler/${encodeURIComponent(p.name)}"><img class="head" src="${head(p.uuid)}" alt="">${esc(p.name)}</a>`).join('') || (t ? '<div class="empty" style="padding:10px 12px">Kein Spieler gefunden</div>' : '');
+  sugg.style.display = t ? 'block' : 'none';
+}
+q.addEventListener('input', showSugg);
+q.addEventListener('keydown', (e) => {
+  const items = [...sugg.querySelectorAll('a')];
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; items.forEach((a, i) => a.classList.toggle('sel', i === sel)); }
+  if (e.key === 'Enter' && items.length) { location.hash = items[Math.max(0, sel)].getAttribute('href'); q.value = ''; showSugg(); q.blur(); }
+  if (e.key === 'Escape') { q.value = ''; showSugg(); }
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.search')) sugg.style.display = 'none'; else if (e.target.closest('.sugg a')) { q.value = ''; sugg.style.display = 'none'; } });
+
+// ---- Router ----
+async function load() {
+  try { state = await getStats(); } catch { state = null; }
+  return state;
+}
+async function route() {
+  clearInterval(timer);
+  const m = location.hash.match(/^#\/spieler\/(.+)$/);
+  if (!state) await load();
+  if (!state) { app.innerHTML = `<section class="hero"><h1>Stats</h1><p class="lead">Zahlen werden geladen… Falls das bleibt: der Stats-Server ist gerade nicht erreichbar.</p></section>`; timer = setInterval(async () => { if (await load()) route(); }, 5000); return; }
+  $('#brandName').textContent = state.serverName;
+  window.scrollTo(0, 0);
+  if (m) return renderPlayer(decodeURIComponent(m[1]));
+  renderOverview(state);
+  if (!DEMO) timer = setInterval(async () => { if (await load() && !location.hash.startsWith('#/spieler/')) renderOverview(state); }, (state.refreshSeconds || 30) * 1000);
+}
+window.addEventListener('hashchange', route);
+route();
+})();
+</script>
+</body>
+</html>

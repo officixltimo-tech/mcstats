@@ -1,0 +1,19 @@
+{
+  "serverName": "Mein Server",
+
+  "remote": {
+    "protocol": "ftp",
+    "host": "123.45.67.89",
+    "port": 21,
+    "user": "dein-gportal-ftp-benutzer",
+    "password": "dein-gportal-ftp-passwort",
+    "path": "/"
+  },
+
+  "mcHost": "123.45.67.89",
+  "mcPort": 25565,
+
+  "port": 8080,
+  "refreshSeconds": 120,
+  "hidden": []
+}
