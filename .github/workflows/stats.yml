@@ -1,3 +1,6 @@
+# Holt die Stats per FTP von G-Portal, veröffentlicht die Seite auf GitHub Pages
+# und lädt sie – falls eingestellt – zusätzlich auf deinen eigenen Webspace (eigene Domain).
+# Zugangsdaten kommen aus den Repository-Secrets (Settings → Secrets and variables → Actions).
 name: Stats aktualisieren
 
 on:
@@ -20,13 +23,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
-      - uses: actions/cache@v4
+      # Namens-Cache und Dateistand vom letzten Lauf wiederverwenden (spart Downloads)
+      - uses: actions/cache@v5
         with:
           path: |
             mirror
@@ -37,7 +41,8 @@ jobs:
       - name: SFTP-Bibliothek installieren (nur bei SFTP nötig)
         env:
           FTP_PROTOCOL: ${{ secrets.FTP_PROTOCOL }}
-        run: if [ "$FTP_PROTOCOL" = "sftp" ]; then npm install ssh2-sftp-client; fi
+          WEB_FTP_PROTOCOL: ${{ secrets.WEB_FTP_PROTOCOL }}
+        run: if [ "$FTP_PROTOCOL" = "sftp" ] || [ "$WEB_FTP_PROTOCOL" = "sftp" ]; then npm install ssh2-sftp-client; fi
 
       - name: Stats holen und Seite bauen
         env:
@@ -53,6 +58,16 @@ jobs:
           MC_PORT: ${{ secrets.MC_PORT }}
           HIDDEN_PLAYERS: ${{ vars.HIDDEN_PLAYERS }}
         run: node build.js
+
+      - name: Auf eigene Domain hochladen
+        env:
+          WEB_FTP_PROTOCOL: ${{ secrets.WEB_FTP_PROTOCOL }}
+          WEB_FTP_HOST: ${{ secrets.WEB_FTP_HOST }}
+          WEB_FTP_PORT: ${{ secrets.WEB_FTP_PORT }}
+          WEB_FTP_USER: ${{ secrets.WEB_FTP_USER }}
+          WEB_FTP_PASSWORD: ${{ secrets.WEB_FTP_PASSWORD }}
+          WEB_FTP_PATH: ${{ secrets.WEB_FTP_PATH }}
+        run: node deploy.js
 
       - uses: actions/upload-pages-artifact@v3
         with:
