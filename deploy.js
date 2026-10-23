@@ -31,6 +31,7 @@ async function connect(w) {
     await c.connect({ host: w.host, port: w.port, username: w.user, password: w.password, readyTimeout: 20000 });
     return {
       ensureDir: (d) => c.mkdir(d, true).catch(() => {}),
+      list: async (d) => (await c.list(d)).map((f) => f.name),
       put: (local, remote) => c.fastPut(local, remote),
       close: () => c.end(),
     };
@@ -40,6 +41,7 @@ async function connect(w) {
   await c.access({ host: w.host, port: w.port, user: w.user, password: w.password, secure: w.protocol === 'ftps' });
   return {
     ensureDir: (d) => c.ensureDir(d),
+    list: async (d) => (await c.list(d)).map((f) => f.name).filter((n) => n !== '.' && n !== '..'),
     put: (local, remote) => c.uploadFrom(local, remote),
     close: async () => c.close(),
   };
@@ -72,19 +74,28 @@ async function deploy() {
 
   const files = walk(dist);
   const hash = (f) => crypto.createHash('sha1').update(fs.readFileSync(path.join(dist, f))).digest('hex');
-  const changed = files.filter((f) => man.files[f] !== hash(f));
-  // Erst die Daten, zuletzt stats.json und index.html – so sieht nie jemand eine halbe Seite
-  const rank = (f) => (f === 'index.html' ? 2 : f === 'data/stats.json' ? 1 : 0);
-  changed.sort((a, z) => rank(a) - rank(z));
-
-  if (!changed.length) { console.log('[deploy] Nichts geändert – nichts hochzuladen.'); return; }
 
   const t0 = Date.now();
   const conn = await connect(w);
   console.log(`[deploy] Verbunden mit ${w.host} (${w.protocol.toUpperCase()}), Zielordner ${w.path}`);
-  const made = new Set();
   let n = 0;
   try {
+    // Nachsehen, was wirklich auf dem Webspace liegt. Fehlt etwas (z. B. weil ein Lauf
+    // abgebrochen wurde oder jemand Dateien gelöscht hat), wird es neu hochgeladen.
+    let remoteNames = [];
+    try { remoteNames = await conn.list(w.path); } catch { /* Ordner gibt es noch nicht */ }
+    console.log(`[deploy] Auf dem Webspace in ${w.path}: ${remoteNames.slice(0, 20).join(', ') || '(leer)'}`);
+    const present = new Set(remoteNames);
+    const missingTop = new Set(files.map((f) => f.split('/')[0]).filter((t) => !present.has(t)));
+    if (missingTop.size) console.log(`[deploy] Fehlt auf dem Webspace: ${[...missingTop].join(', ')} – wird hochgeladen.`);
+
+    const changed = files.filter((f) => missingTop.has(f.split('/')[0]) || man.files[f] !== hash(f));
+    // Erst die Daten, zuletzt stats.json und index.html – so sieht nie jemand eine halbe Seite
+    const rank = (f) => (f === 'index.html' ? 2 : f === 'data/stats.json' ? 1 : 0);
+    changed.sort((a, z) => rank(a) - rank(z));
+    if (!changed.length) { console.log('[deploy] Alles aktuell – nichts hochzuladen.'); return; }
+
+    const made = new Set();
     for (const f of changed) {
       const remote = posix.join(w.path, f);
       const dir = posix.dirname(remote);
@@ -96,6 +107,7 @@ async function deploy() {
     await conn.close().catch(() => {});
     fs.writeFileSync(manFile, JSON.stringify(man));
   }
+  if (!n) return;
   const msg = `${n} Datei(en) auf ${w.host} hochgeladen (${((Date.now() - t0) / 1000).toFixed(1)} s)`;
   console.log('[deploy] ' + msg);
   if (GH) console.log(`::notice title=Eigene Domain::${msg}`);
