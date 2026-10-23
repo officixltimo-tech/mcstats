@@ -26,9 +26,7 @@ function loadWebConfig() {
 
 async function connect(w) {
   if (w.protocol === 'sftp') {
-    let SftpClient;
-    try { SftpClient = require('ssh2-sftp-client'); }
-    catch { throw new Error('Für SFTP einmal "npm install ssh2-sftp-client" ausführen.'); }
+    const SftpClient = require('./need')('ssh2-sftp-client');
     const c = new SftpClient();
     await c.connect({ host: w.host, port: w.port, username: w.user, password: w.password, readyTimeout: 20000 });
     return {

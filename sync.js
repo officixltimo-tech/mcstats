@@ -24,9 +24,7 @@ async function openFtp(r) {
 }
 
 async function openSftp(r) {
-  let SftpClient;
-  try { SftpClient = require('ssh2-sftp-client'); }
-  catch { throw new Error('Für SFTP einmal "npm install ssh2-sftp-client" im mcstats-Ordner ausführen.'); }
+  const SftpClient = require('./need')('ssh2-sftp-client');
   const c = new SftpClient();
   await c.connect({ host: r.host, port: r.port || 22, username: r.user, password: r.password, readyTimeout: 20000 });
   return {
