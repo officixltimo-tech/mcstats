@@ -1,5 +1,5 @@
-# Holt die Stats per FTP von G-Portal, veröffentlicht die Seite auf GitHub Pages
-# und lädt sie – falls eingestellt – zusätzlich auf deinen eigenen Webspace (eigene Domain).
+# Holt die Stats per FTP von G-Portal, baut die Seite und lädt sie auf deinen Webspace (eigene Domain).
+# GitHub Pages wird NICHT benutzt – die Seite ist nur über deine eigene Domain erreichbar.
 # Zugangsdaten kommen aus den Repository-Secrets (Settings → Secrets and variables → Actions).
 name: Stats aktualisieren
 
@@ -12,12 +12,10 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: stats
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -71,17 +69,3 @@ jobs:
           WEB_FTP_PASSWORD: ${{ secrets.WEB_FTP_PASSWORD }}
           WEB_FTP_PATH: ${{ secrets.WEB_FTP_PATH }}
         run: node deploy.js
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
