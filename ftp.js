@@ -135,6 +135,32 @@ class FtpClient {
     fs.renameSync(tmp, local);
   }
 
+  // Legt einen Ordner samt Unterordnern an (vorhandene Ordner sind kein Fehler)
+  async ensureDir(dir) {
+    const parts = dir.split('/').filter(Boolean);
+    let cur = dir.startsWith('/') ? '' : '.';
+    for (const p of parts) {
+      cur += '/' + p;
+      try { await this.send('MKD ' + cur, [200, 299]); } catch { /* existiert schon */ }
+    }
+  }
+
+  async uploadFrom(local, remote) {
+    const data = await this._dataSocket();
+    const closed = new Promise((res, rej) => { data.on('close', res); data.on('error', rej); });
+    closed.catch(() => {});
+    try { await this.send('STOR ' + remote, [100, 199]); } catch (e) { data.destroy(); throw e; }
+    await new Promise((res, rej) => {
+      const rs = fs.createReadStream(local);
+      rs.on('error', rej); data.on('error', rej);
+      data.on('finish', res);
+      rs.pipe(data);
+    });
+    await closed;
+    const fin = await this._next();
+    if (fin.code >= 400) throw new Error(`Hochladen von ${remote} fehlgeschlagen: ${fin.text}`);
+  }
+
   close() { try { this.sock.write('QUIT\r\n'); this.sock.end(); } catch {} }
 }
 

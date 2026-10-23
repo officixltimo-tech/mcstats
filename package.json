@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "build": "node build.js",
-    "sync": "node sync.js"
+    "sync": "node sync.js",
+    "deploy": "node deploy.js"
   },
   "engines": { "node": ">=18" },
   "optionalDependencies": {
