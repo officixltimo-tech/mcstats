@@ -42,7 +42,10 @@ jobs:
         env:
           FTP_PROTOCOL: ${{ secrets.FTP_PROTOCOL }}
           WEB_FTP_PROTOCOL: ${{ secrets.WEB_FTP_PROTOCOL }}
-           run: if [ "${FTP_PROTOCOL,,}" = "sftp" ] || [ "${WEB_FTP_PROTOCOL,,}" = "sftp" ]; then npm install ssh2-sftp-client; fi
+        run: |
+          if [ "${FTP_PROTOCOL,,}" = "sftp" ] || [ "${WEB_FTP_PROTOCOL,,}" = "sftp" ]; then
+            npm install ssh2-sftp-client
+          fi
 
       - name: Stats holen und Seite bauen
         env:
