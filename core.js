@@ -93,23 +93,80 @@ function pingServer(host, port, timeout = 4000) {
   });
 }
 
-// ---------- Log-Events ----------
-async function readEvents(cfg, names) {
-  let txt = '';
-  try { txt = await fsp.readFile(path.join(cfg.serverDir, 'logs', 'latest.log'), 'utf8'); } catch { return []; }
+// ---------- Events ----------
+// Deutsche Namen der Vanilla-Erfolge (aus den Minecraft-Sprachdateien)
+let ADV_DE = {};
+try { ADV_DE = JSON.parse(fs.readFileSync(path.join(__dirname, 'advancements-de.json'), 'utf8')); } catch {}
+const CHALLENGES = new Set([
+  'adventure/kill_all_mobs', 'adventure/adventuring_time', 'adventure/arbalistic', 'adventure/two_birds_one_arrow',
+  'adventure/sniper_duel', 'adventure/bullseye', 'adventure/hero_of_the_village', 'adventure/overoverkill',
+  'nether/all_effects', 'nether/all_potions', 'nether/return_to_sender', 'nether/uneasy_alliance',
+  'nether/netherite_armor', 'nether/explore_nether', 'end/levitate', 'husbandry/balanced_diet',
+  'husbandry/complete_catalogue', 'husbandry/bred_all_animals', 'husbandry/obtain_netherite_hoe', 'husbandry/froglights',
+].map((x) => 'minecraft:' + x));
+const advTitle = (id) => ADV_DE[id] || id.replace(/^[^:]+:/, '').split('/').pop().replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+
+// "2026-10-14 18:30:12 +0200" -> Date
+function mcDate(s) {
+  const m = String(s).match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/);
+  return m ? new Date(`${m[1]}T${m[2]}${m[3]}:${m[4]}`) : null;
+}
+
+// Erfolge aus <welt>/advancements/<uuid>.json – mit genauem Datum, auch über Neustarts hinweg
+async function readAdvancements(cfg, advDir, names) {
+  const out = [];
+  let files = [];
+  try { files = (await fsp.readdir(advDir)).filter((f) => f.endsWith('.json')); } catch { return { events: out, offset: null }; }
+  let offset = null;
+  for (const f of files) {
+    const uuid = f.slice(0, -5);
+    const name = names[uuid];
+    if (!name || cfg.hidden.includes(name.toLowerCase())) continue;
+    const data = await readJson(path.join(advDir, f), {});
+    for (const [id, a] of Object.entries(data)) {
+      if (!a || a.done !== true || id.includes(':recipes/') || /\/root$/.test(id) && id !== 'minecraft:nether/root' && id !== 'minecraft:end/root') continue;
+      const times = Object.values(a.criteria || {});
+      const last = times.sort().pop();
+      const when = mcDate(last);
+      if (!when) continue;
+      if (!offset) offset = String(last).slice(-5);
+      out.push({ ts: when.toISOString(), type: CHALLENGES.has(id) ? 'challenge' : 'advancement', player: name, detail: advTitle(id) });
+    }
+  }
+  return { events: out, offset };
+}
+
+// Joins/Leaves (und Erfolge, falls es keine Fortschritts-Dateien gibt) aus logs/latest.log
+async function readLog(cfg, names, offset, withAdvancements) {
+  let txt = '', mtime = new Date();
+  const file = path.join(cfg.serverDir, 'logs', 'latest.log');
+  try { txt = await fsp.readFile(file, 'utf8'); } catch { return []; }
+  // Datum des Logs: heute in der Zeitzone des Servers (aus den Fortschritts-Dateien, sonst Deutschland)
+  const off = offset || '+0200';
+  const offMin = (off[0] === '-' ? -1 : 1) * (Number(off.slice(1, 3)) * 60 + Number(off.slice(3)));
+  const local = new Date(mtime.getTime() + offMin * 60000);
+  const day = local.toISOString().slice(0, 10);
+  const known = new Set(Object.values(names).map((n) => n.toLowerCase()));
   const events = [];
   for (const line of txt.split(/\r?\n/)) {
     const m = line.match(/^\[(\d{2}:\d{2}:\d{2})[^\]]*\](?: \[[^\]]+\])?: (.*)$/);
     if (!m) continue;
-    const [, time, msg] = m;
+    let t = new Date(`${day}T${m[1]}${off.slice(0, 3)}:${off.slice(3)}`);
+    if (t > mtime) t = new Date(t.getTime() - 86400000); // Zeit liegt in der Zukunft → Log ist von gestern
+    const ts = t.toISOString();
     let e;
-    if ((e = msg.match(/^(\w{3,16}) joined the game$/))) events.push({ time, type: 'join', player: e[1] });
-    else if ((e = msg.match(/^(\w{3,16}) left the game$/))) events.push({ time, type: 'leave', player: e[1] });
-    else if ((e = msg.match(/^(\w{3,16}) has (made the advancement|completed the challenge|reached the goal) \[(.+)\]$/)))
-      events.push({ time, type: e[2].includes('challenge') ? 'challenge' : 'advancement', player: e[1], detail: e[3] });
+    if ((e = m[2].match(/^(\w{3,16}) joined the game$/))) events.push({ ts, type: 'join', player: e[1] });
+    else if ((e = m[2].match(/^(\w{3,16}) left the game$/))) events.push({ ts, type: 'leave', player: e[1] });
+    else if (withAdvancements && (e = m[2].match(/^(\w{3,16}) has (made the advancement|completed the challenge|reached the goal) \[(.+)\]$/)))
+      events.push({ ts, type: e[2].includes('challenge') ? 'challenge' : 'advancement', player: e[1], detail: e[3] });
   }
-  const known = new Set(Object.values(names).map((n) => n.toLowerCase()));
-  return events.filter((e) => known.has(e.player.toLowerCase()) && !cfg.hidden.includes(e.player.toLowerCase())).slice(-8).reverse();
+  return events.filter((e) => known.has(e.player.toLowerCase()) && !cfg.hidden.includes(e.player.toLowerCase()));
+}
+
+async function readEvents(cfg, advDir, names) {
+  const adv = await readAdvancements(cfg, advDir, names);
+  const log = await readLog(cfg, names, adv.offset, adv.events.length === 0);
+  return [...adv.events, ...log].sort((a, z) => (a.ts < z.ts ? 1 : -1)).slice(0, 12);
 }
 
 // ---------- Bestenlisten ----------
@@ -183,7 +240,7 @@ async function collect(cfg) {
       hours: list.reduce((a, p) => a + p.summary.playtime, 0),
       deaths: list.reduce((a, p) => a + p.summary.deaths, 0),
     },
-    events: await readEvents(cfg, names),
+    events: await readEvents(cfg, path.join(path.dirname(statsDir), 'advancements'), names),
     boards: BOARDS.map((b) => ({
       ...b,
       entries: list.filter((p) => p.summary[b.key] > 0).sort((a, z) => z.summary[b.key] - a.summary[b.key]).slice(0, 10)

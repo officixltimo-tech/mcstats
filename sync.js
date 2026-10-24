@@ -125,6 +125,14 @@ async function sync(cfg) {
     if (fs.existsSync(localStats)) for (const f of fs.readdirSync(localStats)) if (!keep.has(f)) { fs.rmSync(path.join(localStats, f)); delete manifest['world/stats/' + f]; }
     for (const f of stats) await fetchFile(`world/stats/${f.name}`, posix.join(statsDir, f.name), f);
     statCount = stats.length;
+
+    // 3) Fortschritte (Erfolge) – liegen neben dem Stats-Ordner: .../advancements
+    if (statsDir) {
+      const advDir = posix.join(posix.dirname(statsDir), 'advancements');
+      const adv = (await listing(advDir)).filter((f) => f.isFile && f.name.endsWith('.json'));
+      for (const f of adv) await fetchFile(`world/advancements/${f.name}`, posix.join(advDir, f.name), f);
+      console.log(`[sync] Fortschritte: ${adv.length ? `${adv.length} Spieler in ${advDir}` : `keine gefunden in ${advDir}`}`);
+    }
   } finally {
     await conn.close().catch(() => {});
     fs.writeFileSync(manifestFile, JSON.stringify(manifest));
