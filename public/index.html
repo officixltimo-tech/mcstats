@@ -80,11 +80,27 @@ h2{font-family:var(--font-titel);font-size:28px;margin:48px 0 6px}
 .events{list-style:none;margin:0;padding:0}
 .events li{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .events li:first-child{border-top:0}
-.events time{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px;min-width:44px}
+.events time{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px;min-width:52px;line-height:1.25;flex:none}
+.events time small{display:block;font-size:10px}
+.events li .tag{flex:none}
+.events li > span:last-child{min-width:0;overflow-wrap:anywhere}
 .tag{font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;text-transform:uppercase;letter-spacing:.05em}
 .t-join{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent)}
 .t-leave{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
 .t-advancement,.t-challenge{background:color-mix(in srgb,var(--gold) 20%,transparent);color:var(--gold)}
+/* Geplante Events */
+.plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.ev{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start;min-width:0}
+.ev.now{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.cal{background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center;padding:6px 0 8px;line-height:1}
+.cal .m{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--red);font-weight:700}
+.cal .d{font-family:var(--font-titel);font-size:30px;margin-top:4px}
+.cal .w{font-size:11px;color:var(--dim);margin-top:4px}
+.ev h3{margin:0;font-size:16px;font-family:var(--font-titel);overflow-wrap:anywhere}
+.ev .meta{color:var(--muted);font-size:13px;margin-top:4px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.ev p{margin:8px 0 0;font-size:14px;color:var(--text);overflow-wrap:anywhere}
+.when{font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;text-transform:uppercase;letter-spacing:.05em;background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)}
+.ev.now .when{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent)}
 
 .head{width:28px;height:28px;border-radius:6px;image-rendering:pixelated;background:var(--card2);flex:none}
 .boards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -200,6 +216,37 @@ async function getStats() {
   }
   return d;
 }
+// Eigene Events aus public/events.json
+async function getEvents() {
+  if (DEMO) return DEMO.plan || [];
+  try { const r = await fetch('events.json?t=' + Date.now()); return r.ok ? await r.json() : []; } catch { return []; }
+}
+function parseWhen(e) {
+  const d = String(e.datum || '').trim();
+  let y, m, day;
+  let x = d.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (x) [, day, m, y] = x;
+  x = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); if (x) [, y, m, day] = x;
+  if (!y) return null;
+  const [hh, mm] = String(e.uhrzeit || '').match(/^(\d{1,2}):(\d{2})$/)?.slice(1) || [0, 0];
+  return new Date(+y, m - 1, +day, +hh, +mm);
+}
+function planned(list) {
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return (Array.isArray(list) ? list : []).map((e) => ({ ...e, when: parseWhen(e) }))
+    .filter((e) => e.when && e.titel && e.when >= today)
+    .sort((a, z) => a.when - z.when).slice(0, 6);
+}
+function untilLabel(when, hasTime) {
+  const now = new Date();
+  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const b = new Date(when.getFullYear(), when.getMonth(), when.getDate());
+  const days = Math.round((b - a) / 86400000);
+  if (days === 0) return hasTime && when <= now ? 'Läuft gerade' : 'Heute';
+  if (days === 1) return 'Morgen';
+  return `In ${days} Tagen`;
+}
+let plan = [];
+
 async function getPlayer(name) {
   if (DEMO) return DEMO.players[name.toLowerCase()] || null;
   if (!/^\w{1,36}$/.test(name)) return null;
@@ -214,7 +261,23 @@ const fmt = (v, unit) => {
 };
 const COL = { playtime: '#6cc6ff', diamonds: '#4ee6d8', deaths: '#9a8aa8', mined: '#a07a52', mobs: '#ff6b7a', distance: '#7ee081', totems: '#ffd166', damage: '#e05c3c', food: '#e0a06b' };
 const px = (k) => `<span class="px" style="--c:${COL[k] || '#b8a6c6'}"></span>`;
-const EVT = { join: ['join', 'Join', 'ist beigetreten'], leave: ['leave', 'Left', 'hat das Spiel verlassen'], advancement: ['advancement', 'Erfolg', 'hat den Fortschritt'], challenge: ['challenge', 'Challenge', 'hat die Herausforderung'] };
+const EVT = {
+  join: ['join', 'Join', (e) => 'ist beigetreten'],
+  leave: ['leave', 'Left', (e) => 'hat das Spiel verlassen'],
+  advancement: ['advancement', 'Erfolg', (e) => `hat den Fortschritt <b>${esc(e.detail)}</b> erzielt`],
+  challenge: ['challenge', 'Challenge', (e) => `hat die Herausforderung <b>${esc(e.detail)}</b> gemeistert`],
+};
+// Zeitpunkt: heute nur Uhrzeit, gestern "Gestern", sonst Datum
+function evTime(e) {
+  if (!e.ts) return esc((e.time || '').slice(0, 5));
+  const d = new Date(e.ts), now = new Date();
+  const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const diff = Math.round((day(now) - day(d)) / 86400000);
+  if (diff <= 0) return hm;
+  if (diff === 1) return `Gestern<small>${hm}</small>`;
+  return `${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}<small>${hm}</small>`;
+}
 
 let state = null, timer = null;
 
@@ -248,13 +311,27 @@ function renderOverview(d) {
     </div>
     <div class="panel"><h3>Letzte Events</h3>
       ${d.events.length ? `<ol class="events">${d.events.map((e) => {
-        const [cls, label, txt] = EVT[e.type];
-        return `<li><time>${esc(e.time.slice(0, 5))}</time><span class="tag t-${cls}">${label}</span><span><a href="#/spieler/${encodeURIComponent(e.player)}"><b>${esc(e.player)}</b></a> ${txt}${e.detail ? ` <b>${esc(e.detail)}</b> erreicht` : ''}</span></li>`;
-      }).join('')}</ol>` : '<span class="empty">Noch nichts passiert heute.</span>'}
+        const [cls, label, txt] = EVT[e.type] || EVT.advancement;
+        return `<li><time${e.ts ? ` datetime="${esc(e.ts)}" title="${esc(new Date(e.ts).toLocaleString('de-DE'))}"` : ''}>${evTime(e)}</time><span class="tag t-${cls}">${label}</span><span><a href="#/spieler/${encodeURIComponent(e.player)}"><b>${esc(e.player)}</b></a> ${txt(e)}</span></li>`;
+      }).join('')}</ol>` : '<span class="empty">Noch nichts passiert.</span>'}
     </div>
   </div>
 
   ${d.totals.players ? '' : `<div class="panel" style="margin-top:14px"><h3>Noch keine Spieler-Stats</h3><p class="empty" style="margin:0">Die Seite hat noch keine Statistik-Dateien vom Server bekommen. Minecraft legt sie erst an, wenn jemand gespielt hat und der Server gespeichert hat. Details stehen im Protokoll des letzten Abrufs.</p></div>`}
+
+  ${planned(plan).length ? `<h2>Geplante Events</h2>
+  <p class="h2sub">Was als Nächstes auf dem Server passiert</p>
+  <div class="plan">${planned(plan).map((e) => {
+    const lbl = untilLabel(e.when, !!e.uhrzeit);
+    return `<article class="ev ${lbl === 'Läuft gerade' ? 'now' : ''}">
+      <div class="cal"><div class="m">${e.when.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}</div><div class="d">${e.when.getDate()}</div><div class="w">${e.when.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')}</div></div>
+      <div style="min-width:0">
+        <h3>${esc(e.titel)}</h3>
+        <div class="meta"><span class="when">${lbl}</span>${e.uhrzeit ? `<span>${esc(e.uhrzeit)} Uhr</span>` : ''}${e.ort ? `<span>${esc(e.ort)}</span>` : ''}</div>
+        ${e.text ? `<p>${esc(e.text)}</p>` : ''}
+      </div>
+    </article>`;
+  }).join('')}</div>` : ''}
 
   <h2>Bestenlisten</h2>
   <p class="h2sub">Top 10 · Name anklicken für die ganze Spielerseite</p>
@@ -374,7 +451,7 @@ document.addEventListener('click', (e) => { if (!e.target.closest('.search')) su
 
 // ---- Router ----
 async function load() {
-  try { state = await getStats(); } catch { state = null; }
+  try { [state, plan] = await Promise.all([getStats(), getEvents()]); } catch { state = null; }
   return state;
 }
 async function route() {
