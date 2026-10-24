@@ -30,10 +30,19 @@ async function connect(w) {
     const SftpClient = require('./need')('ssh2-sftp-client');
     const c = new SftpClient();
     await c.connect({ host: w.host, port: w.port, username: w.user, password: w.password, readyTimeout: 20000 });
+    // Webserver müssen die Dateien lesen dürfen: Ordner 755, Dateien 644
     return {
-      ensureDir: (d) => c.mkdir(d, true).catch(() => {}),
+      ensureDir: async (d) => {
+        await c.mkdir(d, true).catch(() => {});
+        // alle Ordnerebenen lesbar machen (z. B. "mcstats" und "mcstats/data")
+        const parts = d.split('/').filter((p) => p && p !== '.');
+        for (let i = 1; i <= parts.length; i++) await c.chmod((d.startsWith('/') ? '/' : '') + parts.slice(0, i).join('/'), 0o755).catch(() => {});
+      },
       list: async (d) => (await c.list(d)).map((f) => f.name),
-      put: (local, remote) => c.fastPut(local, remote),
+      put: async (local, remote) => {
+        await c.fastPut(local, remote, { mode: 0o644 });
+        await c.chmod(remote, 0o644).catch(() => {});
+      },
       close: () => c.end(),
     };
   }
@@ -41,9 +50,15 @@ async function connect(w) {
   const c = new FtpClient(30000);
   await c.access({ host: w.host, port: w.port, user: w.user, password: w.password, secure: w.protocol === 'ftps' });
   return {
-    ensureDir: (d) => c.ensureDir(d),
+    ensureDir: async (d) => {
+      await c.ensureDir(d);
+      await c.send('SITE CHMOD 755 ' + d).catch(() => {});
+    },
     list: async (d) => (await c.list(d)).map((f) => f.name).filter((n) => n !== '.' && n !== '..'),
-    put: (local, remote) => c.uploadFrom(local, remote),
+    put: async (local, remote) => {
+      await c.uploadFrom(local, remote);
+      await c.send('SITE CHMOD 644 ' + remote).catch(() => {}); // nicht jeder Server kann das – dann egal
+    },
     close: async () => c.close(),
   };
 }
@@ -70,7 +85,7 @@ async function deploy() {
   fs.mkdirSync(path.dirname(manFile), { recursive: true });
   let man = {};
   try { man = JSON.parse(fs.readFileSync(manFile, 'utf8')); } catch {}
-  const target = `${w.protocol}://${w.host}${w.path}`;
+  const target = `${w.protocol}://${w.host}/${w.path}#v2`; // "#v2": einmal alles neu hochladen (mit Leserechten)
   if (man.target !== target) man = { target, files: {} }; // anderes Ziel → alles neu hochladen
 
   const files = walk(dist);
@@ -97,6 +112,7 @@ async function deploy() {
     if (!changed.length) { console.log('[deploy] Alles aktuell – nichts hochzuladen.'); return; }
 
     const made = new Set();
+    if (w.path !== '.') { await conn.ensureDir(w.path); made.add(w.path); }
     for (const f of changed) {
       const remote = posix.join(w.path, f);
       const dir = posix.dirname(remote);
