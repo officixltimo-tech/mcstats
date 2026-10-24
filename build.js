@@ -21,6 +21,16 @@ const { sync } = require('./sync');
   fs.cpSync(path.join(__dirname, 'public'), out, { recursive: true });
   fs.writeFileSync(path.join(out, 'data', 'stats.json'), JSON.stringify(snapshot));
   for (const [key, p] of Object.entries(players)) fs.writeFileSync(path.join(out, 'data', 'spieler', key + '.json'), JSON.stringify(p));
+
+  // Twitch: wer ist gerade live? (Fehler hier sollen die restliche Seite nicht kaputt machen)
+  let twitch;
+  try { twitch = await require('./twitch').twitchStatus(); }
+  catch (e) {
+    console.warn('[twitch] ' + e.message);
+    if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Twitch::${e.message}`);
+    twitch = { updated: new Date().toISOString(), configured: true, error: e.message, channels: [] };
+  }
+  fs.writeFileSync(path.join(out, 'data', 'twitch.json'), JSON.stringify(twitch));
   fs.writeFileSync(path.join(out, '.nojekyll'), '');
   const n = Object.keys(players).length;
   const summary = `${n} Spieler mit Stats, Minecraft-Server ${snapshot.server.reachable ? `online (${snapshot.server.online} Spieler)` : `nicht erreichbar unter ${cfg.mcHost}:${cfg.mcPort || 25565}`}`;
