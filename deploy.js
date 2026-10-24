@@ -20,7 +20,8 @@ function loadWebConfig() {
     port: Number(e.WEB_FTP_PORT || c.port || (protocol === 'sftp' ? 22 : 21)),
     user: e.WEB_FTP_USER || c.user,
     password: e.WEB_FTP_PASSWORD || c.password,
-    path: (e.WEB_FTP_PATH || c.path || '/').replace(/\/+$/, '') || '/',
+    // Zielordner immer relativ zum Webspace (z. B. "mcstats"); leer oder "/" = Hauptordner des Webspace
+    path: (e.WEB_FTP_PATH || c.path || '').trim().replace(/^\/+|\/+$/g, '') || '.',
   };
 }
 
