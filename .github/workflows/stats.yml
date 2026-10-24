@@ -58,6 +58,8 @@ jobs:
           MC_HOST: ${{ secrets.MC_HOST }}
           MC_PORT: ${{ secrets.MC_PORT }}
           HIDDEN_PLAYERS: ${{ vars.HIDDEN_PLAYERS }}
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
         run: node build.js
 
       - name: Auf eigene Domain hochladen
