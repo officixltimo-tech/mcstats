@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Server Stats</title>
 <meta name="theme-color" content="#1e1426">
+<!-- Tab-Symbol (Favicon) und Logo: liegen im Ordner public/img -->
+<link rel="icon" href="img/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- SCHRIFTEN: Minecraft-Schrift "Monocraft" liegt in public/fonts (SIL Open Font License). Weitere Schriften hier über Google Fonts laden und unten bei --font-titel / --font-text eintragen -->
@@ -46,7 +50,7 @@ a{color:inherit;text-decoration:none}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--bg) 80%,transparent);border-bottom:1px solid var(--line)}
 header.top .wrap{display:flex;align-items:center;gap:16px;height:60px}
 .brand{font-family:var(--font-titel);font-weight:700;font-size:22px;display:flex;align-items:center;gap:10px}
-.brand .cube{width:26px;height:26px;background:linear-gradient(135deg,#7ee081 0 50%,#5aa65c 50%);box-shadow:inset 0 -8px 0 #6b4a2b;border-radius:4px;image-rendering:pixelated}
+.brand .logo{height:40px;width:auto;max-width:none;display:block;flex:none}
 .search{margin-left:auto;position:relative}
 .search input{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 14px;width:220px;font:inherit;font-size:14px}
 .search input:focus{outline:2px solid var(--accent);outline-offset:1px}
@@ -150,12 +154,12 @@ footer{color:var(--dim);font-size:13px;padding:60px 0 40px;text-align:center}
 @keyframes sk{to{background-position:-200% 0}}
 
 @media (max-width:960px){.boards{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.groups{grid-template-columns:1fr}}
-@media (max-width:620px){.boards{grid-template-columns:1fr}.pk{grid-template-columns:repeat(2,1fr)}.search input{width:150px}.phero{flex-direction:column;align-items:flex-start}.kpi .v{font-size:32px}.brand span{display:none}}
+@media (max-width:620px){.boards{grid-template-columns:1fr}.pk{grid-template-columns:repeat(2,1fr)}.search input{width:150px}.phero{flex-direction:column;align-items:flex-start}.kpi .v{font-size:32px}.brand span{display:none}.brand .logo{height:32px}}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <a class="brand" href="#/"><div class="cube"></div><span id="brandName">Server</span></a>
+  <a class="brand" href="#/"><img class="logo" src="img/logo.png" alt="Logo" width="144" height="40"><span id="brandName">Server</span></a>
   <div class="search">
     <input id="q" type="search" placeholder="Spieler suchen…" autocomplete="off" aria-label="Spieler suchen">
     <div class="sugg" id="sugg"></div>
