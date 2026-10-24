@@ -35,6 +35,7 @@
   --gold:#c99700; --silver:#7d8a99; --bronze:#b56a2d; color-scheme:light;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--bg);color:var(--text);font:16px/1.5 var(--font-text);-webkit-font-smoothing:antialiased;
   background-image:radial-gradient(1200px 500px at 80% -10%, color-mix(in srgb,var(--accent) 12%, transparent), transparent 70%),
@@ -80,6 +81,10 @@ h2{font-family:var(--font-titel);font-size:28px;margin:48px 0 6px}
 .events{list-style:none;margin:0;padding:0}
 .events li{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .events li:first-child{border-top:0}
+.evmore{display:flex;align-items:center;gap:6px;width:100%;justify-content:center;margin-top:8px;padding:8px;border:1px dashed var(--line);border-radius:10px;background:none;color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.evmore:hover{background:var(--card2);border-style:solid}
+.evmore .arr{display:inline-block;transition:transform .2s}
+.evmore[aria-expanded="true"] .arr{transform:rotate(180deg)}
 .events time{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px;min-width:52px;line-height:1.25;flex:none}
 .events time small{display:block;font-size:10px}
 .events li .tag{flex:none}
@@ -280,6 +285,8 @@ function evTime(e) {
 }
 
 let state = null, timer = null;
+const EV_SHOW = 2;        // so viele Events sind standardmäßig sichtbar
+let eventsOpen = false;   // bleibt beim automatischen Aktualisieren erhalten
 
 // ---- Übersicht ----
 function renderOverview(d) {
@@ -310,10 +317,10 @@ function renderOverview(d) {
       ${s.online > s.players.length && s.players.length ? `<p class="empty" style="margin:10px 0 0">+ ${s.online - s.players.length} weitere</p>` : ''}
     </div>
     <div class="panel"><h3>Letzte Events</h3>
-      ${d.events.length ? `<ol class="events">${d.events.map((e) => {
+      ${d.events.length ? `<ol class="events" id="evList">${d.events.map((e, i) => {
         const [cls, label, txt] = EVT[e.type] || EVT.advancement;
-        return `<li><time${e.ts ? ` datetime="${esc(e.ts)}" title="${esc(new Date(e.ts).toLocaleString('de-DE'))}"` : ''}>${evTime(e)}</time><span class="tag t-${cls}">${label}</span><span><a href="#/spieler/${encodeURIComponent(e.player)}"><b>${esc(e.player)}</b></a> ${txt(e)}</span></li>`;
-      }).join('')}</ol>` : '<span class="empty">Noch nichts passiert.</span>'}
+        return `<li${i >= EV_SHOW && !eventsOpen ? ' hidden' : ''}><time${e.ts ? ` datetime="${esc(e.ts)}" title="${esc(new Date(e.ts).toLocaleString('de-DE'))}"` : ''}>${evTime(e)}</time><span class="tag t-${cls}">${label}</span><span><a href="#/spieler/${encodeURIComponent(e.player)}"><b>${esc(e.player)}</b></a> ${txt(e)}</span></li>`;
+      }).join('')}</ol>${d.events.length > EV_SHOW ? `<button type="button" class="evmore" id="evToggle" aria-expanded="${eventsOpen}" aria-controls="evList">${eventsOpen ? 'Weniger anzeigen' : `Alle ${d.events.length} anzeigen`} <span class="arr">▾</span></button>` : ''}` : '<span class="empty">Noch nichts passiert.</span>'}
     </div>
   </div>
 
@@ -465,6 +472,13 @@ async function route() {
   renderOverview(state);
   if (!DEMO) timer = setInterval(async () => { if (await load() && !location.hash.startsWith('#/spieler/')) renderOverview(state); }, (state.refreshSeconds || 30) * 1000);
 }
+app.addEventListener('click', (ev) => {
+  const b = ev.target.closest('#evToggle'); if (!b) return;
+  eventsOpen = !eventsOpen;
+  document.querySelectorAll('#evList li').forEach((li, i) => { li.hidden = i >= EV_SHOW && !eventsOpen; });
+  b.setAttribute('aria-expanded', eventsOpen);
+  b.firstChild.textContent = eventsOpen ? 'Weniger anzeigen ' : `Alle ${document.querySelectorAll('#evList li').length} anzeigen `;
+});
 window.addEventListener('hashchange', route);
 route();
 })();
