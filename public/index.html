@@ -25,6 +25,7 @@
   --accent:#7ee081; --accent-ink:#163a17; --gold:#ffd166; --silver:#cfd8e3; --bronze:#e0a06b;
   --red:#ff6b7a; --blue:#6cc6ff;
   --radius:14px; color-scheme:dark;
+  --twitch:#9146ff; --live:#eb0400;
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
@@ -52,6 +53,45 @@ header.top .wrap{display:flex;align-items:center;gap:16px;height:60px}
 .brand{font-family:var(--font-titel);font-weight:700;font-size:22px;display:flex;align-items:center;gap:10px}
 .brand .logo{height:40px;width:auto;max-width:none;display:block;flex:none}
 .search{margin-left:auto;position:relative}
+/* Navigation "Live" */
+.navlive{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;font-weight:700;font-size:14px;color:var(--muted)}
+.navlive:hover,.navlive.on{color:var(--text);border-color:var(--text)}
+.navlive .ldot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.navlive.is-live{color:var(--text);border-color:var(--twitch)}
+.navlive.is-live .ldot{background:var(--live);animation:pulse-red 1.6s infinite}
+.lcount{background:var(--live);color:#fff;border-radius:999px;font-size:11px;padding:1px 7px;font-variant-numeric:tabular-nums}
+@keyframes pulse-red{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--live) 70%,transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+/* Live-Seite */
+.livebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding:12px 16px;border-radius:var(--radius);border:1px solid color-mix(in srgb,var(--twitch) 60%,var(--line));background:color-mix(in srgb,var(--twitch) 14%,var(--card))}
+.livebar b{font-family:var(--font-titel)}
+.livebar .go{margin-left:auto;font-weight:700;color:var(--text);background:var(--twitch);padding:6px 12px;border-radius:8px;font-size:14px}
+.ltag{display:inline-flex;align-items:center;gap:5px;background:var(--live);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;border-radius:5px;padding:2px 6px;text-transform:uppercase}
+.ltag::before{content:"";width:6px;height:6px;border-radius:50%;background:#fff}
+.chip .ltag{margin-left:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;margin-top:8px}
+.player{position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line)}
+.player iframe,.player img{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
+.player .ov{position:absolute;inset:auto 0 0 0;padding:14px;background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff}
+.player .ov a{display:inline-block;margin-top:8px;background:var(--twitch);padding:6px 12px;border-radius:8px;font-weight:700;font-size:14px}
+.streams{display:flex;flex-direction:column;gap:10px;min-width:0}
+.scard{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+.scard:hover{border-color:var(--twitch)}
+.scard.sel{border-color:var(--twitch);box-shadow:0 0 0 1px var(--twitch) inset}
+.scard .th{position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:var(--card2)}
+.scard .th img{width:100%;height:100%;object-fit:cover;display:block}
+.scard .th .ltag{position:absolute;left:4px;top:4px}
+.scard .th .vw{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.75);color:#fff;font-size:11px;border-radius:4px;padding:1px 5px}
+.scard .nm2{font-weight:700;display:flex;align-items:center;gap:6px;min-width:0}
+.scard .nm2 img{width:20px;height:20px;border-radius:50%}
+.scard .t{font-size:13px;color:var(--text);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.scard .g{font-size:12px;color:var(--muted);margin-top:3px}
+.offgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.ocard{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);min-width:0}
+.ocard:hover{border-color:var(--twitch)}
+.ocard img{width:40px;height:40px;border-radius:50%;flex:none;filter:grayscale(.7);opacity:.8}
+.ocard .n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ocard .s{font-size:12px;color:var(--dim)}
+@media (max-width:960px){.stage{grid-template-columns:1fr}}
 .search input{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 14px;width:220px;font:inherit;font-size:14px}
 .search input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .sugg{position:absolute;right:0;top:44px;background:var(--card);border:1px solid var(--line);border-radius:12px;width:240px;max-height:300px;overflow:auto;display:none;box-shadow:0 12px 30px rgba(0,0,0,.35)}
@@ -154,12 +194,13 @@ footer{color:var(--dim);font-size:13px;padding:60px 0 40px;text-align:center}
 @keyframes sk{to{background-position:-200% 0}}
 
 @media (max-width:960px){.boards{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.groups{grid-template-columns:1fr}}
-@media (max-width:620px){.boards{grid-template-columns:1fr}.pk{grid-template-columns:repeat(2,1fr)}.search input{width:150px}.phero{flex-direction:column;align-items:flex-start}.kpi .v{font-size:32px}.brand span{display:none}.brand .logo{height:32px}}
+@media (max-width:620px){.boards{grid-template-columns:1fr}.pk{grid-template-columns:repeat(2,1fr)}.search input{width:100px}.navlive{padding:6px 10px}header.top .wrap{gap:8px}.phero{flex-direction:column;align-items:flex-start}.kpi .v{font-size:32px}.brand span{display:none}.brand .logo{height:32px}}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="#/"><img class="logo" src="img/logo.png" alt="Logo" width="144" height="40"><span id="brandName" hidden>Server</span></a>
+  <a class="navlive" id="navLive" href="#/live"><span class="ldot"></span>Live<span class="lcount" id="liveCount" hidden></span></a>
   <div class="search">
     <input id="q" type="search" placeholder="Spieler suchen…" autocomplete="off" aria-label="Spieler suchen">
     <div class="sugg" id="sugg"></div>
@@ -197,7 +238,7 @@ function pixelHead(seed) {
   return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges">${r}</svg>`);
 }
 const head = (uuid, size = 28) => DEMO ? pixelHead(uuid) : `https://mc-heads.net/avatar/${uuid}/${size * 2}`;
-document.addEventListener('error', (e) => { const i = e.target; if (i.tagName === 'IMG' && !i.dataset.fb) { i.dataset.fb = 1; i.src = pixelHead(i.dataset.u || i.src); } }, true);
+document.addEventListener('error', (e) => { const i = e.target; if (i.tagName === 'IMG' && i.classList.contains('thumb')) { i.style.visibility = 'hidden'; return; } if (i.tagName === 'IMG' && !i.dataset.fb) { i.dataset.fb = 1; i.src = pixelHead(i.dataset.u || i.src); } }, true);
 
 // ---- Theme ----
 try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
@@ -225,6 +266,20 @@ async function getStats() {
   }
   return d;
 }
+// Twitch-Status (wird bei jedem Lauf von GitHub erzeugt)
+let twitch = { channels: [] };
+async function getTwitch() {
+  if (DEMO) return DEMO.twitch || { channels: [] };
+  try { const r = await fetch('data/twitch.json?t=' + Date.now()); return r.ok ? await r.json() : { channels: [] }; } catch { return { channels: [] }; }
+}
+const liveList = () => (twitch.channels || []).filter((c) => c.live).sort((a, z) => z.viewers - a.viewers);
+const liveOf = (player) => (twitch.channels || []).find((c) => c.live && c.spieler && c.spieler.toLowerCase() === String(player).toLowerCase());
+function updateNav() {
+  const n = liveList().length, a = $('#navLive'), c = $('#liveCount');
+  a.classList.toggle('is-live', n > 0); a.classList.toggle('on', location.hash === '#/live');
+  c.hidden = !n; c.textContent = n;
+}
+
 // Eigene Events aus public/events.json
 async function getEvents() {
   if (DEMO) return DEMO.plan || [];
@@ -312,11 +367,12 @@ function renderOverview(d) {
     <div class="kpi"><div class="l">Tode</div><div class="v">${nf.format(d.totals.deaths)}</div><div class="s">und es werden mehr</div></div>
   </div>
 
+  ${liveList().length ? `<a class="livebar" href="#/live"><span class="ltag">Live</span><span><b>${liveList().length}</b> ${liveList().length === 1 ? 'Spieler streamt' : 'Spieler streamen'} gerade auf Twitch: ${liveList().slice(0, 3).map((c) => esc(c.spieler || c.name)).join(', ')}${liveList().length > 3 ? ' …' : ''}</span><span class="go">Zuschauen</span></a>` : ''}
   <div class="split" style="margin-top:14px">
     <div class="panel"><h3>Gerade online</h3>
       <div class="online">${s.players.length ? s.players.map((n) => {
         const p = d.players.find((x) => x.name.toLowerCase() === n.toLowerCase());
-        return `<a class="chip" href="#/spieler/${encodeURIComponent(n)}"><img class="head" loading="lazy" src="${head(p ? p.uuid : n)}" alt="">${esc(n)}</a>`;
+        return `<a class="chip" href="#/spieler/${encodeURIComponent(n)}"><img class="head" loading="lazy" src="${head(p ? p.uuid : n)}" alt="">${esc(n)}${liveOf(n) ? '<span class="ltag">Live</span>' : ''}</a>`;
       }).join('') : `<span class="empty">${s.reachable ? 'Gerade ist niemand online.' : 'Keine Verbindung zum Server.'}</span>`}</div>
       ${s.online > s.players.length && s.players.length ? `<p class="empty" style="margin:10px 0 0">+ ${s.online - s.players.length} weitere</p>` : ''}
     </div>
@@ -441,6 +497,57 @@ async function renderPlayer(name) {
   });
 }
 
+// ---- Live-Seite ----
+function sinceLabel(iso) {
+  if (!iso) return '';
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+  return m < 60 ? `seit ${m} Min.` : `seit ${Math.floor(m / 60)} Std. ${m % 60} Min.`;
+}
+const canEmbed = () => !DEMO && location.protocol === 'https:';
+let liveSel = null;
+function playerHtml(c) {
+  if (canEmbed()) return `<iframe src="https://player.twitch.tv/?channel=${encodeURIComponent(c.login)}&parent=${encodeURIComponent(location.hostname)}&muted=true" allowfullscreen title="Twitch-Stream von ${esc(c.name)}"></iframe>`;
+  return `${c.thumb ? `<img class="thumb" src="${esc(c.thumb)}" alt="">` : ''}<div class="ov"><span class="ltag">Live</span> <b>${esc(c.name)}</b><br>${esc(c.title)}<br><a href="https://www.twitch.tv/${encodeURIComponent(c.login)}" target="_blank" rel="noopener">Auf Twitch ansehen</a></div>`;
+}
+function renderLive() {
+  document.title = `Live · ${state.serverName}`;
+  const live = liveList(), off = (twitch.channels || []).filter((c) => !c.live);
+  if (!live.find((c) => c.login === liveSel)) liveSel = live[0]?.login || null;
+  const sel = live.find((c) => c.login === liveSel);
+  const offCard = (c) => `<a class="ocard" href="https://www.twitch.tv/${encodeURIComponent(c.login)}" target="_blank" rel="noopener">
+      ${c.avatar ? `<img class="thumb" src="${esc(c.avatar)}" alt="">` : `<img src="${pixelHead(c.login)}" alt="">`}
+      <span style="min-width:0"><span class="n">${esc(c.name || c.login)}</span><br><span class="s">${c.spieler ? esc(c.spieler) + ' · ' : ''}offline</span></span></a>`;
+  app.innerHTML = `
+  <section class="hero">
+    <div class="kicker"><span class="dot ${live.length ? '' : 'off'}"></span>${live.length ? `${live.length} gerade live` : 'Gerade niemand live'}</div>
+    <h1>Live</h1>
+    <p class="lead">Wer von uns streamt gerade auf Twitch? Klick auf einen Stream, um ihn hier anzuschauen.</p>
+  </section>
+  ${live.length ? `
+  <div class="stage">
+    <div class="player" id="player">${playerHtml(sel)}</div>
+    <div class="streams">${live.map((c) => `
+      <button type="button" class="scard ${c.login === liveSel ? 'sel' : ''}" data-login="${esc(c.login)}">
+        <span class="th">${c.thumb ? `<img class="thumb" src="${esc(c.thumb)}" alt="">` : ''}<span class="ltag">Live</span><span class="vw">${nf.format(c.viewers)} Zuschauer</span></span>
+        <span style="min-width:0">
+          <span class="nm2">${c.avatar ? `<img class="thumb" src="${esc(c.avatar)}" alt="">` : ''}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</span></span>
+          <span class="t">${esc(c.title)}</span>
+          <span class="g">${c.spieler ? esc(c.spieler) + ' · ' : ''}${esc(c.game || 'Twitch')} · ${sinceLabel(c.started)}</span>
+        </span>
+      </button>`).join('')}</div>
+  </div>` : `<div class="panel"><h3>Gerade streamt niemand</h3><p class="empty" style="margin:0">${(twitch.channels || []).length ? 'Sobald jemand live geht, erscheint der Stream hier.' : 'Es sind noch keine Twitch-Kanäle eingetragen.'}</p></div>`}
+  ${off.length ? `<h2>Offline</h2><p class="h2sub">Folgen lohnt sich trotzdem</p><div class="offgrid">${off.map(offCard).join('')}</div>` : ''}
+  <p class="status">Stand: ${twitch.updated ? new Date(twitch.updated).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : '–'}${twitch.configured === false || twitch.error ? ' · Live-Status gerade nicht verfügbar' : ''}${DEMO ? ' · Demo-Daten' : ''}</p>`;
+}
+app.addEventListener('click', (ev) => {
+  const b = ev.target.closest('.scard'); if (!b) return;
+  liveSel = b.dataset.login;
+  const c = liveList().find((x) => x.login === liveSel); if (!c) return;
+  $('#player').innerHTML = playerHtml(c);
+  app.querySelectorAll('.scard').forEach((x) => x.classList.toggle('sel', x === b));
+  if (innerWidth <= 960) $('#player').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
 // ---- Suche ----
 const q = $('#q'), sugg = $('#sugg');
 let sel = -1;
@@ -462,7 +569,8 @@ document.addEventListener('click', (e) => { if (!e.target.closest('.search')) su
 
 // ---- Router ----
 async function load() {
-  try { [state, plan] = await Promise.all([getStats(), getEvents()]); } catch { state = null; }
+  try { [state, plan, twitch] = await Promise.all([getStats(), getEvents(), getTwitch()]); } catch { state = null; }
+  updateNav();
   return state;
 }
 async function route() {
@@ -472,9 +580,16 @@ async function route() {
   if (!state) { app.innerHTML = `<section class="hero"><h1>Stats</h1><p class="lead">Zahlen werden geladen… Falls das bleibt: der Stats-Server ist gerade nicht erreichbar.</p></section>`; timer = setInterval(async () => { if (await load()) route(); }, 5000); return; }
   $('#brandName').textContent = state.serverName;
   window.scrollTo(0, 0);
+  updateNav();
   if (m) return renderPlayer(decodeURIComponent(m[1]));
+  if (location.hash === '#/live') {
+    renderLive();
+    // Liste aktuell halten, ohne den laufenden Stream neu zu laden
+    if (!DEMO) timer = setInterval(async () => { if (await load() && location.hash === '#/live' && !liveList().find((c) => c.login === liveSel)) renderLive(); }, 60000);
+    return;
+  }
   renderOverview(state);
-  if (!DEMO) timer = setInterval(async () => { if (await load() && !location.hash.startsWith('#/spieler/')) renderOverview(state); }, (state.refreshSeconds || 30) * 1000);
+  if (!DEMO) timer = setInterval(async () => { if (await load() && !location.hash.startsWith('#/spieler/') && location.hash !== '#/live') renderOverview(state); }, (state.refreshSeconds || 30) * 1000);
 }
 app.addEventListener('click', (ev) => {
   const b = ev.target.closest('#evToggle'); if (!b) return;
