@@ -176,6 +176,7 @@ const DIST = /_one_cm$/;
 const BOARDS = [
   { key: 'playtime', title: 'Dauerzocker', sub: 'Meiste Spielzeit', unit: 'hours' },
   { key: 'diamonds', title: 'Diamantenbank', sub: 'Meiste Diamanterze abgebaut', unit: 'count' },
+  { key: 'netherite', title: 'Netherit-Jäger', sub: 'Meisten antiken Schrott abgebaut', unit: 'count' },
   { key: 'deaths', title: 'Friedhof', sub: 'Hier liegen sie. Immer wieder.', unit: 'count' },
   { key: 'mined', title: 'Abrissbirne', sub: 'Meiste Blöcke abgebaut', unit: 'count' },
   { key: 'mobs', title: 'Monsterjäger', sub: 'Meiste Mobs erledigt', unit: 'count' },
@@ -191,6 +192,7 @@ function summarize(s) {
   return {
     playtime: (g('play_time') || g('play_one_minute')) / 72000,
     diamonds: sum(s['minecraft:mined'], (k) => k === 'diamond_ore' || k === 'deepslate_diamond_ore'),
+    netherite: sum(s['minecraft:mined'], (k) => k === 'ancient_debris'),
     deaths: g('deaths'),
     mined: sum(s['minecraft:mined']),
     mobs: g('mob_kills'),
