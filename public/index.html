@@ -193,6 +193,10 @@ footer{color:var(--dim);font-size:13px;padding:60px 0 40px;text-align:center}
 .skel{color:transparent;background:linear-gradient(90deg,var(--card2),var(--line),var(--card2));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:6px}
 @keyframes sk{to{background-position:-200% 0}}
 
+@media (min-width:961px){
+  .boards > .board:last-child:nth-child(3n+1){grid-column:1/-1}
+  .boards > .board:last-child:nth-child(3n+1) ol{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(5,auto);grid-auto-flow:column;column-gap:28px}
+}
 @media (max-width:960px){.boards{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.groups{grid-template-columns:1fr}}
 @media (max-width:620px){.boards{grid-template-columns:1fr}.pk{grid-template-columns:repeat(2,1fr)}.search input{width:100px}.navlive{padding:6px 10px}header.top .wrap{gap:8px}.phero{flex-direction:column;align-items:flex-start}.kpi .v{font-size:32px}.brand span{display:none}.brand .logo{height:32px}}
 </style>
@@ -323,7 +327,7 @@ const fmt = (v, unit) => {
   if (unit === 'hearts') return nf.format(Math.round(v)) + ' ♥';
   return nf.format(Math.round(v));
 };
-const COL = { playtime: '#6cc6ff', diamonds: '#4ee6d8', deaths: '#9a8aa8', mined: '#a07a52', mobs: '#ff6b7a', distance: '#7ee081', totems: '#ffd166', damage: '#e05c3c', food: '#e0a06b' };
+const COL = { playtime: '#6cc6ff', diamonds: '#4ee6d8', netherite: '#7a5f66', deaths: '#9a8aa8', mined: '#a07a52', mobs: '#ff6b7a', distance: '#7ee081', totems: '#ffd166', damage: '#e05c3c', food: '#e0a06b' };
 const px = (k) => `<span class="px" style="--c:${COL[k] || '#b8a6c6'}"></span>`;
 const EVT = {
   join: ['join', 'Join', (e) => 'ist beigetreten'],
