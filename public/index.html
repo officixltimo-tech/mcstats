@@ -194,6 +194,9 @@ footer{color:var(--dim);font-size:13px;padding:60px 0 40px;text-align:center}
 @keyframes sk{to{background-position:-200% 0}}
 
 @media (min-width:961px){
+  .boards{grid-template-columns:repeat(6,1fr)}
+  .boards > .board{grid-column:span 2}
+  .boards > .board:nth-last-child(2):nth-child(3n+1),.boards > .board:last-child:nth-child(3n+2){grid-column:span 3}
   .boards > .board:last-child:nth-child(3n+1){grid-column:1/-1}
   .boards > .board:last-child:nth-child(3n+1) ol{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(5,auto);grid-auto-flow:column;column-gap:28px}
 }
@@ -327,7 +330,7 @@ const fmt = (v, unit) => {
   if (unit === 'hearts') return nf.format(Math.round(v)) + ' ♥';
   return nf.format(Math.round(v));
 };
-const COL = { playtime: '#6cc6ff', diamonds: '#4ee6d8', netherite: '#7a5f66', deaths: '#9a8aa8', mined: '#a07a52', mobs: '#ff6b7a', distance: '#7ee081', totems: '#ffd166', damage: '#e05c3c', food: '#e0a06b' };
+const COL = { playtime: '#6cc6ff', diamonds: '#4ee6d8', netherite: '#7a5f66', deaths: '#9a8aa8', mined: '#a07a52', placed: '#c9a46a', mobs: '#ff6b7a', distance: '#7ee081', totems: '#ffd166', damage: '#e05c3c', food: '#e0a06b' };
 const px = (k) => `<span class="px" style="--c:${COL[k] || '#b8a6c6'}"></span>`;
 const EVT = {
   join: ['join', 'Join', (e) => 'ist beigetreten'],
