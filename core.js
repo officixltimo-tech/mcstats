@@ -172,6 +172,9 @@ async function readEvents(cfg, advDir, names) {
 // ---------- Bestenlisten ----------
 const FOOD = new Set(('apple golden_apple enchanted_golden_apple melon_slice sweet_berries glow_berries chorus_fruit carrot golden_carrot potato baked_potato poisonous_potato beetroot beetroot_soup dried_kelp beef cooked_beef porkchop cooked_porkchop mutton cooked_mutton chicken cooked_chicken rabbit cooked_rabbit cod cooked_cod salmon cooked_salmon tropical_fish pufferfish bread cookie cake pumpkin_pie rotten_flesh spider_eye mushroom_stew rabbit_stew suspicious_stew honey_bottle').split(' '));
 const DIST = /_one_cm$/;
+// Alle Blöcke (aus den Minecraft-Sprachdateien) – platzierte Blöcke zählt Minecraft unter "Benutzt"
+let BLOCKS = new Set();
+try { BLOCKS = new Set(JSON.parse(fs.readFileSync(path.join(__dirname, 'blocks.json'), 'utf8'))); } catch {}
 
 const BOARDS = [
   { key: 'playtime', title: 'Dauerzocker', sub: 'Meiste Spielzeit', unit: 'hours' },
@@ -179,6 +182,7 @@ const BOARDS = [
   { key: 'netherite', title: 'Netherit-Jäger', sub: 'Meisten antiken Schrott abgebaut', unit: 'count' },
   { key: 'deaths', title: 'Friedhof', sub: 'Hier liegen sie. Immer wieder.', unit: 'count' },
   { key: 'mined', title: 'Abrissbirne', sub: 'Meiste Blöcke abgebaut', unit: 'count' },
+  { key: 'placed', title: 'Baumeister', sub: 'Meiste Blöcke platziert', unit: 'count' },
   { key: 'mobs', title: 'Monsterjäger', sub: 'Meiste Mobs erledigt', unit: 'count' },
   { key: 'distance', title: 'Weltenbummler', sub: 'Weiteste Strecke', unit: 'km' },
   { key: 'totems', title: 'Unsterblich', sub: 'Meiste Totems verbraucht', unit: 'count' },
@@ -195,6 +199,7 @@ function summarize(s) {
     netherite: sum(s['minecraft:mined'], (k) => k === 'ancient_debris'),
     deaths: g('deaths'),
     mined: sum(s['minecraft:mined']),
+    placed: sum(s['minecraft:used'], (k) => BLOCKS.has(k)),
     mobs: g('mob_kills'),
     distance: sum(c, (k) => DIST.test(k) && k !== 'fall_one_cm') / 100000,
     totems: sum(s['minecraft:used'], (k) => k === 'totem_of_undying'),
